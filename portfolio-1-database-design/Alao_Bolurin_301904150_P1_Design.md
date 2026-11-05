@@ -12,17 +12,44 @@ I kept **department** and **doctor** separate so the clinic can maintain multipl
 ## 2. Attributes and keys
 I use an automatically generated ID for each record as the Primary Key (PK). Unique means no repeated values. Required means the value cannot be missing.
 
-* **department:** `department_id` BIGINT; `name` VARCHAR(100). PK: `department_id`. Unique: `name`. All required.
-* **patient:** `patient_id` BIGINT; `patient_number` VARCHAR(30); `phone` VARCHAR(20); `full_name` VARCHAR(120). PK: `patient_id`. Unique: `patient_number` and `phone` separately. All required.
-* **doctor:** `doctor_id` BIGINT; `department_id` BIGINT; `license_number` VARCHAR(50); `full_name` VARCHAR(120). PK: `doctor_id`. FK: `department_id` → `department.department_id`. Unique: `license_number`. All required.
-* **appointment:** `appointment_id` BIGINT; `patient_id` BIGINT; `doctor_id` BIGINT; `scheduled_at` TIMESTAMPTZ; `status` VARCHAR(20); `consultation_notes` TEXT; `notes_added_at` TIMESTAMPTZ. PK: `appointment_id`. FKs: `patient_id` → `patient.patient_id`; `doctor_id` → `doctor.doctor_id`. Required: all except `consultation_notes` and `notes_added_at`.
-
 ## department
 
 | Column | Data type | Key | Required |
 |---|---|---|---|
 | `department_id` | BIGINT | PK | Yes |
 | `name` | VARCHAR(100) | Unique | Yes |
+
+## patient
+
+| Column | Data type | Key | Required |
+|---|---|---|---|
+| `patient_id` | BIGINT | PK | Yes |
+| `patient_number` | VARCHAR(30) | Unique | Yes |
+| `phone` | VARCHAR(20) | Unique | Yes |
+| `full_name` | VARCHAR(120) | | Yes |
+
+`patient_number` and `phone` are each unique on their own, not as a combination.
+
+## doctor
+
+| Column | Data type | Key | Required |
+|---|---|---|---|
+| `doctor_id` | BIGINT | PK | Yes |
+| `department_id` | BIGINT | FK → `department.department_id` | Yes |
+| `license_number` | VARCHAR(50) | Unique | Yes |
+| `full_name` | VARCHAR(120) | | Yes |
+
+## appointment
+
+| Column | Data type | Key | Required |
+|---|---|---|---|
+| `appointment_id` | BIGINT | PK | Yes |
+| `patient_id` | BIGINT | FK → `patient.patient_id` | Yes |
+| `doctor_id` | BIGINT | FK → `doctor.doctor_id` | Yes |
+| `scheduled_at` | TIMESTAMPTZ | | Yes |
+| `status` | VARCHAR(20) | | Yes |
+| `consultation_notes` | TEXT | | No |
+| `notes_added_at` | TIMESTAMPTZ | | No |
 
 BIGINT holds whole numbers for IDs. VARCHAR(120) holds short text up to 120 characters. TEXT holds long, unrestricted text. TIMESTAMPTZ holds a date and time with time-zone-aware handling. 
 I leave `consultation_notes` and `notes_added_at` empty until the appointment finishes.
