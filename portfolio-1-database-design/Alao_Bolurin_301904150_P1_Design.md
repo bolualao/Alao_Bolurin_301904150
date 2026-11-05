@@ -17,6 +17,13 @@ I use an automatically generated ID for each record as the Primary Key (PK). Uni
 * **doctor:** `doctor_id` BIGINT; `department_id` BIGINT; `license_number` VARCHAR(50); `full_name` VARCHAR(120). PK: `doctor_id`. FK: `department_id` → `department.department_id`. Unique: `license_number`. All required.
 * **appointment:** `appointment_id` BIGINT; `patient_id` BIGINT; `doctor_id` BIGINT; `scheduled_at` TIMESTAMPTZ; `status` VARCHAR(20); `consultation_notes` TEXT; `notes_added_at` TIMESTAMPTZ. PK: `appointment_id`. FKs: `patient_id` → `patient.patient_id`; `doctor_id` → `doctor.doctor_id`. Required: all except `consultation_notes` and `notes_added_at`.
 
+## department
+
+| Column | Data type | Key | Required |
+|---|---|---|---|
+| `department_id` | BIGINT | PK | Yes |
+| `name` | VARCHAR(100) | Unique | Yes |
+
 BIGINT holds whole numbers for IDs. VARCHAR(120) holds short text up to 120 characters. TEXT holds long, unrestricted text. TIMESTAMPTZ holds a date and time with time-zone-aware handling. 
 I leave `consultation_notes` and `notes_added_at` empty until the appointment finishes.
 
