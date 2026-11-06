@@ -1,0 +1,75 @@
+-- 2. ConstraintTests.sql
+-- These statements are run separately outside a transaction block 
+-- so that one failure does not stop the next test.
+
+-- Test 1: Required NOT NULL field
+-- Expected error: null value in column "full_name" violates not-null constraint
+INSERT INTO patient (patient_number, phone, full_name) 
+VALUES ('PT-1003', '555-0103', NULL);
+
+-- Test 2: Rule 1 (Unique value)
+-- Expected error: duplicate key value violates unique constraint on patient_number
+INSERT INTO patient (patient_number, phone, full_name) 
+VALUES ('PT-1001', '555-0999', 'Eve Davis');
+
+-- Test 3: Rule 2 (Unique value)
+-- Expected error: duplicate key value violates unique constraint on license_number
+INSERT INTO doctor (department_id, license_number, full_name) 
+VALUES (
+    (SELECT department_id FROM department WHERE name = 'Cardiology'), 
+    'MED-001', 
+    'Dr. Duplicate'
+);
+
+-- Test 4: Rule 3 (Foreign key)
+-- Expected error: insert or update on table "appointment" violates foreign key constraint (patient_id)
+INSERT INTO appointment (patient_id, doctor_id, scheduled_at, status) 
+VALUES (
+    999999, -- Non-existent patient ID
+    (SELECT doctor_id FROM doctor WHERE license_number = 'MED-002'), 
+    '2026-12-20 09:00:00+00', 
+    'scheduled'
+);
+
+-- Test 5: Rule 4 (Doctor double-booking via partial unique index)
+-- Expected error: duplicate key value violates unique constraint "idx_unique_doctor_schedule"
+-- (Dr. Lee is already booked on 2026-12-10 at 14:00 by PT-1002)
+INSERT INTO appointment (patient_id, doctor_id, scheduled_at, status)
+VALUES (
+    (SELECT patient_id FROM patient WHERE patient_number = 'PT-1001'),
+    (SELECT doctor_id FROM doctor WHERE license_number = 'MED-002'),
+    '2026-12-10 14:00:00+00',
+    'scheduled'
+);
+
+-- Test 6: Rule 6 (Patient double-booking via partial unique index)
+-- Expected error: duplicate key value violates unique constraint "idx_unique_patient_schedule"
+-- (PT-1002 is already booked on 2026-12-10 at 14:00 with Dr. Lee)
+INSERT INTO appointment (patient_id, doctor_id, scheduled_at, status)
+VALUES (
+    (SELECT patient_id FROM patient WHERE patient_number = 'PT-1002'),
+    (SELECT doctor_id FROM doctor WHERE license_number = 'MED-001'),
+    '2026-12-10 14:00:00+00',
+    'scheduled'
+);
+
+-- Test 7: Rule 7 (Date check constraint)
+-- Expected error: new row for relation "appointment" violates check constraint "chk_notes_date"
+-- (Notes cannot be added before the appointment is scheduled to start)
+INSERT INTO appointment (patient_id, doctor_id, scheduled_at, status, consultation_notes, notes_added_at)
+VALUES (
+    (SELECT patient_id FROM patient WHERE patient_number = 'PT-1001'),
+    (SELECT doctor_id FROM doctor WHERE license_number = 'MED-002'),
+    '2026-12-22 15:00:00+00',
+    'completed',
+    'Time travel notes',
+    '2026-12-22 14:00:00+00'
+);
+
+-- Final row count query to verify no invalid data was inserted.
+-- Expected counts: department: 2, patient: 2, doctor: 2, appointment: 4
+SELECT 
+    (SELECT COUNT(*) FROM department) AS department_count,
+    (SELECT COUNT(*) FROM patient) AS patient_count,
+    (SELECT COUNT(*) FROM doctor) AS doctor_count,
+    (SELECT COUNT(*) FROM appointment) AS appointment_count;

@@ -1,0 +1,71 @@
+-- 1. SampleData.sql
+BEGIN;
+
+-- Insert departments
+INSERT INTO department (name) 
+VALUES 
+    ('Cardiology'),
+    ('Pediatrics');
+
+-- Insert patients (Rule 1: unique patient_number and phone)
+INSERT INTO patient (patient_number, phone, full_name) 
+VALUES 
+    ('PT-1001', '555-0101', 'Alice Green'),
+    ('PT-1002', '555-0102', 'Bob Carter');
+
+-- Insert doctors (Rule 2: unique license_number; FK to department)
+-- Looking up the department_id using the unique department name
+INSERT INTO doctor (department_id, license_number, full_name) 
+VALUES 
+    (
+        (SELECT department_id FROM department WHERE name = 'Cardiology'), 
+        'MED-001', 
+        'Dr. Sarah Smith'
+    ),
+    (
+        (SELECT department_id FROM department WHERE name = 'Pediatrics'), 
+        'MED-002', 
+        'Dr. James Lee'
+    );
+
+-- Insert appointments (Rule 3: FK to patient and doctor)
+-- Example A: A completed appointment in the past (Rule 7: notes_added_at is after scheduled_at)
+INSERT INTO appointment (patient_id, doctor_id, scheduled_at, status, consultation_notes, notes_added_at)
+VALUES (
+    (SELECT patient_id FROM patient WHERE patient_number = 'PT-1001'),
+    (SELECT doctor_id FROM doctor WHERE license_number = 'MED-001'),
+    '2026-10-15 09:00:00+00',
+    'completed',
+    'Routine checkup completed normally.',
+    '2026-10-15 09:45:00+00'
+);
+
+-- Example B: A scheduled appointment in the future
+INSERT INTO appointment (patient_id, doctor_id, scheduled_at, status)
+VALUES (
+    (SELECT patient_id FROM patient WHERE patient_number = 'PT-1002'),
+    (SELECT doctor_id FROM doctor WHERE license_number = 'MED-002'),
+    '2026-12-10 14:00:00+00',
+    'scheduled'
+);
+
+-- Example C: A cancelled appointment (Rule 8: frees up the time slot)
+INSERT INTO appointment (patient_id, doctor_id, scheduled_at, status)
+VALUES (
+    (SELECT patient_id FROM patient WHERE patient_number = 'PT-1001'),
+    (SELECT doctor_id FROM doctor WHERE license_number = 'MED-001'),
+    '2026-12-12 10:00:00+00',
+    'cancelled'
+);
+
+-- Example D: Re-booking the freed time slot
+-- This succeeds because the previous appointment at this time is 'cancelled'
+INSERT INTO appointment (patient_id, doctor_id, scheduled_at, status)
+VALUES (
+    (SELECT patient_id FROM patient WHERE patient_number = 'PT-1002'),
+    (SELECT doctor_id FROM doctor WHERE license_number = 'MED-001'),
+    '2026-12-12 10:00:00+00',
+    'scheduled'
+);
+
+COMMIT;
